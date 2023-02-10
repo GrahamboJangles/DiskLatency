@@ -1,0 +1,37 @@
+import time
+import psutil
+import matplotlib.pyplot as plt
+
+# initialize variables
+io_counters_prev = psutil.disk_io_counters()
+latency_buckets = [[0] * 10 for i in range(100)]
+x = list(range(100))
+
+while True:
+    # get current IO counters
+    io_counters = psutil.disk_io_counters()
+
+    # calculate operations per second
+    ops_per_sec = (io_counters.read_count - io_counters_prev.read_count) + (io_counters.write_count - io_counters_prev.write_count)
+
+    # calculate latency
+    latency = (io_counters.read_time - io_counters_prev.read_time) + (io_counters.write_time - io_counters_prev.write_time)
+
+    # bucket latency
+    bucket = min(int(latency / 10), 9)
+    latency_buckets.pop(0)
+    latency_buckets.append([0] * 10)
+    latency_buckets[-1][bucket] += ops_per_sec
+
+    # update previous IO counters
+    io_counters_prev = io_counters
+
+    # clear and plot the bar chart
+    plt.clf()
+    for i in range(10):
+        plt.bar(x, [row[i] for row in latency_buckets], bottom=[sum(row[:i]) for row in latency_buckets], label=f'{i*10}ms-{(i+1)*10}ms')
+    plt.xlabel('Time (seconds)')
+    plt.ylabel('IO ops/sec')
+    plt.legend()
+    plt.draw()
+    plt.pause(0.0001)
